@@ -8,7 +8,25 @@ SCREEN_WIDTH = 1244
 SCREEN_HEIGHT = 1016
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
 TRACK = pygame.image.load(os.path.join("Assets", "track.png"))
+
+# Init pygame
+pygame.init()
+
+#Get pygame default font
+pygame_dir = os.path.split(pygame.base.__file__)[0]
+pygame_default_font = os.path.join(pygame_dir, pygame.font.get_default_font())
+print(pygame_default_font)
+
+font = pygame.font.SysFont(pygame_default_font, 36)
+
+clock = pygame.time.Clock()
+
+# Start of the game
+start_ticks = pygame.time.get_ticks()
 
 
 class Car(pygame.sprite.Sprite):
@@ -139,6 +157,23 @@ def eval_genomes(genomes, config):
         for car in cars:
             car.draw(SCREEN)
             car.update()
+            
+        # Time gestion
+        uptime_ms = pygame.time.get_ticks() - start_ticks
+        uptime_sec = uptime_ms // 1000
+        minutes = uptime_sec // 60
+        seconds = uptime_sec % 60
+        milliseconds = uptime_ms % 1000
+
+        # Display uptime
+        uptime_text = font.render(f"Uptime: {minutes:02}:{seconds:02}:{milliseconds:02}", True, BLACK)
+
+        # Show uptime on top left corner
+        SCREEN.blit(uptime_text, (100, 80))
+        pygame.display.flip()
+
+        clock.tick(60)
+        
         pygame.display.update()
 
 
