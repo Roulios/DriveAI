@@ -41,15 +41,26 @@ class Car(pygame.sprite.Sprite):
         self.direction = 0
         self.alive = True
         self.radars = []
+        self.action = 0 #-1 frein, 0 rien, 1 accel
+        self.checkpoint_pass = []
 
     def update(self):
         self.radars.clear()
+        self.update_speed()
         self.drive()
         self.rotate()
         for radar_angle in (-60, -30, 0, 30, 60):
             self.radar(radar_angle)
         self.collision()
         self.data()
+
+    def update_speed(self) :
+        if(self.action > 0) : 
+            self.vel_vector = self.vel_vector * 1.1
+        if(self.action < 0) :
+            self.vel_vector = self.vel_vector*0.5   
+        else :
+            self.vel_vector - self.vel_vector *0.9
 
     def drive(self):
         self.rect.center += self.vel_vector * 6
@@ -60,6 +71,12 @@ class Car(pygame.sprite.Sprite):
                                  int(self.rect.center[1] - math.sin(math.radians(self.angle + 18)) * length)]
         collision_point_left = [int(self.rect.center[0] + math.cos(math.radians(self.angle - 18)) * length),
                                 int(self.rect.center[1] - math.sin(math.radians(self.angle - 18)) * length)]
+
+        # Passe un check point - violet
+        if SCREEN.get_at(collision_point_right) == pygame.Color(255, 0, 255, 255) \
+                or SCREEN.get_at(collision_point_left) == pygame.Color(255, 0, 255, 255):
+            self.checkpoint_pass.append(True)
+
 
         # Die on Collision
         if SCREEN.get_at(collision_point_right) == pygame.Color(2, 105, 31, 255) \
@@ -152,6 +169,12 @@ def eval_genomes(genomes, config):
                 car.sprite.direction = -1
             if output[0] <= 0.7 and output[1] <= 0.7:
                 car.sprite.direction = 0
+            if output[2] > 0.7:
+                car.sprite.action = 1
+            if output[3] > 0.7:
+                car.sprite.action = -1
+            if output[2] <= 0.7 and output[3] <= 0.7:
+                car.sprite.action = 0
 
         # Update
         for car in cars:
@@ -164,6 +187,15 @@ def eval_genomes(genomes, config):
         minutes = uptime_sec // 60
         seconds = uptime_sec % 60
         milliseconds = uptime_ms % 1000
+
+        #Tuer les voitures les plus lentes
+        if(uptime_sec % 20 =0){
+            for car in cars :
+                if(car.checkpoint_pass.isEmpty()) :
+                    car.alive = False
+                else :
+                    car.checkpoint_pass.pop(len(car.checkpoint_pass))
+        }
 
         # Display uptime
         uptime_text = font.render(f"Uptime: {minutes:02}:{seconds:02}:{milliseconds:02}", True, BLACK)
