@@ -29,6 +29,8 @@ clock = pygame.time.Clock()
 start_ticks = pygame.time.get_ticks()
 
 
+
+
 class Car(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -109,8 +111,10 @@ class Car(pygame.sprite.Sprite):
             y = int(self.rect.center[1] - math.sin(math.radians(self.angle + radar_angle)) * length)
 
         # Draw Radar
-        pygame.draw.line(SCREEN, (255, 255, 255, 255), self.rect.center, (x, y), 1)
-        pygame.draw.circle(SCREEN, (0, 255, 0, 0), (x, y), 3)
+       # pygame.draw.line(SCREEN, (255, 255, 255, 255), self.rect.center, (x, y), 1)
+        #pygame.draw.circle(SCREEN, (0, 255, 0, 0), (x, y), 3)
+        #pygame.draw.line(SCREEN, (255, 0, 255, 255), (100,1), (100, 100), 1)
+        
 
         dist = int(math.sqrt(math.pow(self.rect.center[0] - x, 2)
                              + math.pow(self.rect.center[1] - y, 2)))
@@ -131,6 +135,7 @@ def remove(index):
 
 
 def eval_genomes(genomes, config):
+
     global cars, ge, nets
 
     cars = []
@@ -146,12 +151,15 @@ def eval_genomes(genomes, config):
 
     run = True
     while run:
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
         SCREEN.blit(TRACK, (0, 0))
+        # Génération des checkpoints
+        pygame.draw.line(SCREEN, (255, 0, 255, 255), (900,700), (1500, 700), 1)
 
         if len(cars) == 0:
             break
@@ -189,13 +197,13 @@ def eval_genomes(genomes, config):
         milliseconds = uptime_ms % 1000
 
         #Tuer les voitures les plus lentes
-        if(uptime_sec % 20 =0){
+        if(uptime_sec % 15 == 0):
             for car in cars :
-                if(car.checkpoint_pass.isEmpty()) :
-                    car.alive = False
+                if(len(car.sprite.checkpoint_pass) == 0) :
+                    car.sprite.alive = False
                 else :
-                    car.checkpoint_pass.pop(len(car.checkpoint_pass))
-        }
+                    car.sprite.checkpoint_pass.pop(len(car.sprite.checkpoint_pass))
+        
 
         # Display uptime
         uptime_text = font.render(f"Uptime: {minutes:02}:{seconds:02}:{milliseconds:02}", True, BLACK)
