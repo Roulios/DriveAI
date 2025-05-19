@@ -13,6 +13,12 @@ BLACK = (0, 0, 0)
 
 TRACK = pygame.image.load(os.path.join("Assets", "track.png"))
 
+# Event creation, this even will be trigger when the car touch the standing line
+LAP_START = pygame.USEREVENT + 1
+
+# Time when a collision with the line isn't consider as a finish
+START_RECORD_FINISH = 3000
+
 # Init pygame
 pygame.init()
 
@@ -25,8 +31,6 @@ font = pygame.font.SysFont(pygame_default_font, 36)
 
 clock = pygame.time.Clock()
 
-# Start of the game
-start_ticks = pygame.time.get_ticks()
 
 
 class Car(pygame.sprite.Sprite):
@@ -34,13 +38,17 @@ class Car(pygame.sprite.Sprite):
         super().__init__()
         self.original_image = pygame.image.load(os.path.join("Assets", "car.png"))
         self.image = self.original_image
-        self.rect = self.image.get_rect(center=(490, 820))
+        self.rect = self.image.get_rect(center=(580, 820))
         self.vel_vector = pygame.math.Vector2(0.8, 0)
         self.angle = 0
         self.rotation_vel = 5
         self.direction = 0
         self.alive = True
         self.radars = []
+        
+        # Time gestion variables
+        self.track_time_ms = 0
+        self.previous_track_time_ms = 0
 
     def update(self):
         self.radars.clear()
@@ -105,6 +113,14 @@ class Car(pygame.sprite.Sprite):
         for i, radar in enumerate(self.radars):
             input[i] = int(radar[1])
         return input
+    
+    def update_track_time(self):
+        
+        # Update the track time TODO
+
+        if self.track_time_ms > self.previous_track_time_ms:
+            self.previous_track_time_ms = self.track_time_ms
+            self.fitness += 1
 
 
 def remove(index):
@@ -120,30 +136,54 @@ def eval_genomes(genomes, config):
     ge = []
     nets = []
 
+    # Start of the game
+    start_ticks = pygame.time.get_ticks()
+    
     for genome_id, genome in genomes:
         cars.append(pygame.sprite.GroupSingle(Car()))
         ge.append(genome)
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         nets.append(net)
         genome.fitness = 0
+        
+    # Finish line rectangle
+    finish_line_rect = pygame.Rect(540, 767, 17, 107)
 
     run = True
     while run:
+        print
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-
+                
+            if event.type == LAP_START:
+                pass
+        
         SCREEN.blit(TRACK, (0, 0))
+        
+        # Draw the track start line
+        pygame.draw.rect(SCREEN, (255, 0, 230), finish_line_rect)
 
         if len(cars) == 0:
             break
 
         for i, car in enumerate(cars):
-            ge[i].fitness += 1
+            ge[i].fitness += 1          # Increment fitness for each frame, this is a simple way to reward the car for staying alive
             if not car.sprite.alive:
                 remove(i)
-
+            
+            time = pygame.time.get_ticks() - start_ticks
+            
+            # If collision with the start line 
+            if car.sprite.rect.colliderect(finish_line_rect) and (time > START_RECORD_FINISH):
+                ge[i].fitness += 50  # Récompense importante
+                print(f"Car {i} crossed the finish line at time {time / 1000}s")
+                car.sprite.alive = False
+                remove(i)
+                continue
+            
+            
         for i, car in enumerate(cars):
             output = nets[i].activate(car.sprite.data())
             if output[0] > 0.7:
@@ -157,6 +197,13 @@ def eval_genomes(genomes, config):
         for car in cars:
             car.draw(SCREEN)
             car.update()
+            
+        # Cursor position
+        # Position temps réel du curseur
+        x, y = pygame.mouse.get_pos()
+
+        text = font.render(f"Position souris : {x}, {y}", True, (0, 0, 0))
+        SCREEN.blit(text, (100, 130))
             
         # Time gestion
         uptime_ms = pygame.time.get_ticks() - start_ticks
