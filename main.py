@@ -19,6 +19,8 @@ LAP_START = pygame.USEREVENT + 1
 # Time when a collision with the line isn't consider as a finish
 START_RECORD_FINISH = 3000
 
+best_time : float = 0
+
 # Init pygame
 pygame.init()
 
@@ -114,13 +116,19 @@ class Car(pygame.sprite.Sprite):
             input[i] = int(radar[1])
         return input
     
-    def update_track_time(self):
-        
-        # Update the track time TODO
+    # Update best track time and give fitness depending how great is the time upgrade
+    def update_track_time(self, time: float):
 
-        if self.track_time_ms > self.previous_track_time_ms:
-            self.previous_track_time_ms = self.track_time_ms
-            self.fitness += 1
+            if time < self.track_time_ms:
+                self.track_time_ms = time
+                
+                # Calculate fitness gain
+                # TODO: Faire un calcul correct pour le fitness
+                self.fitness += 10
+            
+            if self.previous_track_time_ms == 0 or self.track_time_ms < self.previous_track_time_ms:
+                self.previous_track_time_ms = self.track_time_ms
+            
 
 
 def remove(index):
@@ -135,7 +143,7 @@ def eval_genomes(genomes, config):
     cars = []
     ge = []
     nets = []
-
+    
     # Start of the game
     start_ticks = pygame.time.get_ticks()
     
@@ -148,7 +156,10 @@ def eval_genomes(genomes, config):
         
     # Finish line rectangle
     finish_line_rect = pygame.Rect(540, 767, 17, 107)
-
+    
+    # Record of the best time ever recorded
+    global best_time
+    
     run = True
     while run:
         print
@@ -177,7 +188,15 @@ def eval_genomes(genomes, config):
             
             # If collision with the start line 
             if car.sprite.rect.colliderect(finish_line_rect) and (time > START_RECORD_FINISH):
-                ge[i].fitness += 50  # Récompense importante
+                # Check if the time is better than the best time ever recorded on every car
+                if time < best_time or best_time == 0:
+                    best_time = time
+                    print(f"Best lap time upgraded !! New best lap : {best_time / 1000}s")
+                
+                
+                # Lancer la fonction pour update le temps d'un tour de terrain
+                car.sprite.update_track_time(time)
+                
                 print(f"Car {i} crossed the finish line at time {time / 1000}s")
                 car.sprite.alive = False
                 remove(i)
@@ -241,7 +260,7 @@ def run(config_path):
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
 
-    pop.run(eval_genomes, 50)
+    pop.run(eval_genomes, 10)
 
 
 if __name__ == '__main__':
