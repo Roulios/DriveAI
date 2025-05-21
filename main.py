@@ -212,7 +212,7 @@ def eval_genomes(genomes, config):
         SCREEN.blit(uptime_text, (100, 80))
         pygame.display.flip()
 
-        clock.tick(60)
+        clock.tick(60) 
         
         pygame.display.update()
 
