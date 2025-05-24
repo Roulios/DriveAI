@@ -291,7 +291,7 @@ def eval_genomes(genomes, config):
 
 
         for i, car in enumerate(cars):
-            ge[i].fitness += numpy.linalg.norm(car.sprite.vel_vector) /8    # Increment fitness for each frame, this is a simple way to reward the car for staying alive
+            ge[i].fitness += numpy.linalg.norm(car.sprite.vel_vector) **2 /2   # Increment fitness for each frame, this is a simple way to reward the car for staying alive
 
             
             time = pygame.time.get_ticks() - start_ticks
@@ -333,7 +333,7 @@ def eval_genomes(genomes, config):
         milliseconds = uptime_ms % 1000
 
         # Tue les voitures hors checkpoint
-        if(uptime_sec % 5 == 0 and uptime_sec >0 and ok_check):
+        if(uptime_sec % 7 == 0 and uptime_sec >0 and ok_check):
             for car in cars:
                 if(len(car.sprite.checkpoint_pass) == 0) :
                     #ge[i].fitness -= 500
@@ -352,7 +352,7 @@ def eval_genomes(genomes, config):
             if not car.sprite.alive : 
                 remove(i)
 
-        if(uptime_sec % 5 == 1) : 
+        if(uptime_sec % 7 == 1) : 
             ok_check =True
 
         
