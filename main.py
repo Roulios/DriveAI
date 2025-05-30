@@ -3,26 +3,38 @@ import os
 import math
 import sys
 import neat
-import numpy
+import numpy as np
 
-SCREEN_WIDTH = 1244
-SCREEN_HEIGHT = 1016
+SCREEN_WIDTH = 1452
+SCREEN_HEIGHT = 776
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-WHITE = (255, 255, 255)
+GREEN = (0,80,0,255)
+RED = (251,0,7,255)
+YELLOW = (245,255,0,255)
+BROWN = (123,68,12,255)
+WHITE = (235,234,171,255)
+GRAY = (45,45,45,255)
+
+
+
 BLACK = (0, 0, 0)
 
-TRACK = pygame.image.load(os.path.join("Assets", "track.png"))
+TRACK = pygame.image.load(os.path.join("Assets", "circuit_spa.png"))
 # Finish line rectangle
-finish_line_rect = pygame.Rect(540, 767, 17, 107)
+#finish_line_rect = pygame.Rect(540, 767, 17, 107)
+finish_line_rect = pygame.Rect(325,550,25,107)
 # Checkpoints
-checkpoint_line_rect = pygame.Rect(900,600, 200,10)
-checkpoint_line_rect_2 = pygame.Rect(500,100, 10,200)
-checkpoint_line_rect_3 = pygame.Rect(240,600, 200,10)
+#checkpoint_line_rect = pygame.Rect(900,600, 200,10)
+checkpoint_line_rect = pygame.Rect(110,560,70,2)
+#checkpoint_line_rect_2 = pygame.Rect(500,100, 10,200)
+checkpoint_line_rect_2 = pygame.Rect(268,413,70,2)
+#checkpoint_line_rect_3 = pygame.Rect(240,600, 200,10)
+checkpoint_line_rect_3 = pygame.Rect(0,0,1,1)
 # Mur fictif au premier virage pour tuer les voitures au plus vite
 mur = pygame.Rect(1100,600,300,300)
 
-# Event creation, this even will be trigger when the car touch the standing line
+# Event creation, this even will be rigger when the car touch the standing line
 LAP_START = pygame.USEREVENT + 1
 
 # Time when a collision with the line isn't consider as a finish
@@ -42,6 +54,11 @@ font = pygame.font.SysFont(pygame_default_font, 36)
 
 clock = pygame.time.Clock()
 
+def is_color_equal(color1,color2,tolerance) : 
+    distance = np.array(color1)-np.array(color2)
+    distance = distance**2
+    distance = np.sqrt(distance.sum())
+    return distance < tolerance
 
 
 
@@ -49,20 +66,36 @@ clock = pygame.time.Clock()
 class Car(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.original_image = pygame.image.load(os.path.join("Assets", "car.png"))
+        self.original_image = pygame.image.load(os.path.join("Assets", "GrandeF1pixelart.png"))
         self.image = self.original_image
-        self.rect = self.image.get_rect(center=(580, 820))
-        self.vel_vector = pygame.math.Vector2(0.8, 0)
+        self.rect = self.image.get_rect(center=(338, 595))
+        self.vel_vector = pygame.math.Vector2(-0.8, 0)
         self.angle = 0
         self.rotation_vel = 5
         self.direction = 0
         self.alive = True
         self.radars = []
         self.action = 0 #-1 frein, 0 rien, 1 accel
-        self.checkpoint_pass = []
+        self.checkpoint_pass = [False,False]
         self.one_check = False
 
-        
+        self.colors = {
+            "green":(GREEN,False),
+            "red":(RED,True),
+            "yellow":(YELLOW,True),
+            "brown":(BROWN,False),
+            "white":(WHITE,False),
+            "gray":(GRAY,True)
+        }
+        #print(self.colors)
+
+        length = 25
+        self.length = length
+        self.collision_point_right = [int(self.rect.center[0] - math.cos(math.radians(self.angle - 18)) * length),
+                                 int(self.rect.center[1] + math.sin(math.radians(self.angle - 18)) * length)]
+        self.collision_point_left = [int(self.rect.center[0] - math.cos(math.radians(self.angle + 18)) * length),
+                                int(self.rect.center[1] + math.sin(math.radians(self.angle + 18)) * length)]
+                        
         # Time gestion variables
         self.track_time_ms = 0
         self.previous_track_time_ms = 0
@@ -80,6 +113,21 @@ class Car(pygame.sprite.Sprite):
         self.collision(ge,i,time,best_time)
         if not self.alive :
             remove(i)
+        """
+
+        founded = False
+        for k,v in self.colors.items() : 
+            if SCREEN.get_at((self.collision_point_left[0],self.collision_point_left[1])) == v[0]: 
+                print(k)
+                founded=True
+            if SCREEN.get_at((self.collision_point_right[0],self.collision_point_right[1])) == v[0]: 
+                print(k)
+                founded=True
+        if not founded : 
+            print(SCREEN.get_at((self.collision_point_right[0],self.collision_point_right[1])))
+
+        print("coucou")"""
+        
 
     def update_speed(self) :
         if(self.action > 0) : 
@@ -87,17 +135,17 @@ class Car(pygame.sprite.Sprite):
         if(self.action < 0) :
             self.vel_vector = self.vel_vector*0.5   
         else :
-            self.vel_vector - self.vel_vector *0.9
+            self.vel_vector = self.vel_vector *0.9
 
     def drive(self):
         self.rect.center += self.vel_vector * 6
 
     def collision(self,ge,i,time,best_time):
-        length = 40
-        collision_point_right = [int(self.rect.center[0] + math.cos(math.radians(self.angle + 18)) * length),
-                                 int(self.rect.center[1] - math.sin(math.radians(self.angle + 18)) * length)]
-        collision_point_left = [int(self.rect.center[0] + math.cos(math.radians(self.angle - 18)) * length),
-                                int(self.rect.center[1] - math.sin(math.radians(self.angle - 18)) * length)]
+        length = 25
+        collision_point_right = [int(self.rect.center[0] - math.cos(math.radians(self.angle - 18)) * length),
+                                 int(self.rect.center[1] + math.sin(math.radians(self.angle - 18)) * length)]
+        collision_point_left = [int(self.rect.center[0] - math.cos(math.radians(self.angle + 18)) * length),
+                                int(self.rect.center[1] + math.sin(math.radians(self.angle + 18)) * length)]
 
 
  
@@ -105,14 +153,15 @@ class Car(pygame.sprite.Sprite):
         # Die on Collision
 
         # On est en dehors du cadre
-        if collision_point_left[0] > 1200 or collision_point_left[1] > 1000 \
-        or collision_point_right[0] > 1200 or collision_point_right[1] > 1000 :
+        if collision_point_left[0] > SCREEN_WIDTH or collision_point_left[1] > SCREEN_HEIGHT \
+        or collision_point_right[0] > SCREEN_WIDTH or collision_point_right[1] > SCREEN_HEIGHT :
             self.alive = False
             #remove(i)
 
         # On passe sur de l'herbe ou une bande blanche
-        elif SCREEN.get_at(collision_point_right) == pygame.Color(2, 105, 31, 255) \
-        or SCREEN.get_at(collision_point_left) == pygame.Color(2, 105, 31, 255) :
+        elif is_color_equal(SCREEN.get_at(collision_point_right),GREEN,10) \
+        or is_color_equal(SCREEN.get_at(collision_point_left),GREEN,10) :
+        
             ge[i].fitness -= 200
             self.alive = False
             #remove(i)
@@ -121,20 +170,21 @@ class Car(pygame.sprite.Sprite):
         elif self.rect.colliderect(mur) and (time > START_RECORD_FINISH) and self.alive:
             ge[i].fitness -= 200
             self.alive = False
+            print('murhan')
            # remove(i)
 
        # Passe un check point 1
-        elif self.rect.colliderect(checkpoint_line_rect) and (time > START_RECORD_FINISH) and not self.one_check:
+        elif self.rect.colliderect(checkpoint_line_rect) and (time > START_RECORD_FINISH) and not self.checkpoint_pass[0]:
             print("checkpoint 1 passed")
             self.checkpoint_pass.append(True)
-            self.one_check = True
+            self.checkpoint_pass[0] = True
             ge[i].fitness += 20
 
         # Passe un check point 2
-        elif self.rect.colliderect(checkpoint_line_rect_2) and (time > START_RECORD_FINISH)  and not self.one_check:
+        elif self.rect.colliderect(checkpoint_line_rect_2) and (time > START_RECORD_FINISH)  and not self.checkpoint_pass[1]:
             print("checkpoint 2 passed")
             self.checkpoint_pass.append(True)
-            self.one_check = True
+            self.checkpoint_pass[1] = True
             ge[i].fitness += 40
 
         # Passe un check point 3
@@ -162,14 +212,14 @@ class Car(pygame.sprite.Sprite):
             #remove(i)
 
                # Draw Collision Points
-        pygame.draw.circle(SCREEN, (0, 255, 255, 0), collision_point_right, 4)
-        pygame.draw.circle(SCREEN, (0, 255, 255, 0), collision_point_left, 4)
+        pygame.draw.circle(SCREEN, (0, 255, 255, 0), collision_point_right, 3)
+        pygame.draw.circle(SCREEN, (0, 255, 255, 0), collision_point_left, 3)
 
 
     def kill_slow(self,ge,i,time) :
 
         #Tuer les voitures les plus lentes
-        if numpy.linalg.norm(self.vel_vector) <0.1 :
+        if abs(np.linalg.norm(self.vel_vector)) <0.1 :
             ge[i].fitness -= 400
             self.alive = False
             #remove(i)
@@ -193,12 +243,13 @@ class Car(pygame.sprite.Sprite):
         y = int(self.rect.center[1])
         if self.alive :
 
-            while x <1200 and y < 1000 and not SCREEN.get_at((x, y)) == pygame.Color(2, 105, 31, 255) and length < 200:
+            while x <1450 and y < 760 and not is_color_equal(SCREEN.get_at((x, y)),GREEN,10) and length < 100:
                 length += 1
-                x = int(self.rect.center[0] + math.cos(math.radians(self.angle + radar_angle)) * length)
-                y = int(self.rect.center[1] - math.sin(math.radians(self.angle + radar_angle)) * length)
+                x = int(self.rect.center[0] - math.cos(math.radians(self.angle + radar_angle)) * length)
+                y = int(self.rect.center[1] + math.sin(math.radians(self.angle + radar_angle)) * length)
 
         # Draw Radar
+      #  pygame.draw.line(SCREEN, (2, 105, 31, 255), self.rect.center, (0, 0), 10)
         pygame.draw.line(SCREEN, (255, 255, 255, 255), self.rect.center, (x, y), 1)
         pygame.draw.circle(SCREEN, (0, 255, 0, 0), (x, y), 3)
         
@@ -240,16 +291,16 @@ def regenerate_map() :
     SCREEN.blit(TRACK, (0, 0))
 
     # Génération des checkpoints
-    pygame.draw.rect(SCREEN, (0, 0, 230), checkpoint_line_rect)
+    pygame.draw.rect(SCREEN, (0, 0, 230), checkpoint_line_rect )
     pygame.draw.rect(SCREEN, (0, 0, 230), checkpoint_line_rect_2)
-    pygame.draw.rect(SCREEN, (0, 0, 230), checkpoint_line_rect_3)
+    #pygame.draw.rect(SCREEN, (0, 0, 230), checkpoint_line_rect_3)
 
     #pygame.draw.rect(SCREEN, (250, 0, 0), mur)
 
             
     # Draw the track start line
     pygame.draw.rect(SCREEN, (255, 0, 230), finish_line_rect) # TODO merge Ysa: Check si la ligne finish_line_rect on en fait pas un checkpoint ?
-
+    
 
 
 def eval_genomes(genomes, config):
@@ -291,7 +342,7 @@ def eval_genomes(genomes, config):
 
 
         for i, car in enumerate(cars):
-            ge[i].fitness += numpy.linalg.norm(car.sprite.vel_vector) **2 /2   # Increment fitness for each frame, this is a simple way to reward the car for staying alive
+            #ge[i].fitness += np.linalg.norm(car.sprite.vel_vector) **2 /2   # Increment fitness for each frame, this is a simple way to reward the car for staying alive
 
             
             time = pygame.time.get_ticks() - start_ticks
@@ -315,15 +366,16 @@ def eval_genomes(genomes, config):
 
         # Update
         for i, car in enumerate(cars):
+           # car.sprite.image = pygame.transform.flip(car.sprite.image, True, False)
             car.draw(SCREEN)
             car.update(ge,i,time,best_time)
             
         # Cursor position
         # Position temps réel du curseur
-        #x, y = pygame.mouse.get_pos()
+        x, y = pygame.mouse.get_pos()
 
-        #text = font.render(f"Position souris : {x}, {y}", True, (0, 0, 0))
-        #SCREEN.blit(text, (100, 130))
+        text = font.render(f"Position souris : {x}, {y}", True, (0, 0, 0))
+        SCREEN.blit(text, (100, 130))
             
         # Time gestion
         uptime_ms = pygame.time.get_ticks() - start_ticks
@@ -335,6 +387,17 @@ def eval_genomes(genomes, config):
         # Tue les voitures hors checkpoint
         if(uptime_sec % 7 == 0 and uptime_sec >0 and ok_check):
             for car in cars:
+                i = 0
+                check = False
+                while i< len(car.sprite.checkpoint_pass) and not check :
+                    if car.sprite.checkpoint_pass[i] :
+                        car.sprite.checkpoint_pass[i] = False
+                        check = True
+                    i+=1
+                if not check :
+                    car.sprite.alive = False
+
+                    """
                 if(len(car.sprite.checkpoint_pass) == 0) :
                     #ge[i].fitness -= 500
                     car.sprite.alive = False
@@ -344,8 +407,8 @@ def eval_genomes(genomes, config):
                    
                 else :
                     car.sprite.checkpoint_pass=[]
-                    car.sprite.one_check = False
-                    print("ça dépop")
+                    #car.sprite.one_check = False
+                    print("ça dépop")"""
             ok_check = False
 
         for i, car in enumerate(cars):
