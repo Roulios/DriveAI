@@ -120,7 +120,7 @@ class Car(pygame.sprite.Sprite):
             ge[i].fitness -= 20  # pénalité allégée
 
         if not self.alive:
-            remove(i)
+            remove(i)       
 
     def update_speed(self):
         # Accélération ou freinage
@@ -317,12 +317,6 @@ def eval_genomes(genomes, config):
 
         uptime_text = font.render(f"Uptime: {minutes:02}:{seconds:02}:{milliseconds:02}", True, BLACK)
         SCREEN.blit(uptime_text, (100, 80))
-
-        x, y = pygame.mouse.get_pos()
-        text = font.render(f"Position souris : {x}, {y}", True, BLACK)
-        SCREEN.blit(text, (100, 130))
-        color_text = font.render(f"Couleur souris : {SCREEN.get_at((x, y))}", True, BLACK)
-        SCREEN.blit(color_text, (800, 630))
 
         pygame.display.flip()
         clock.tick(60)
